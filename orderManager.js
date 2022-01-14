@@ -5,8 +5,8 @@ const AWS = require('aws-sdk');
 const dynamo = new AWS.DynamoDB.DocumentClient();
 const kinesis = new AWS.Kinesis();
 
-const TABLE_NAME = process.env.orderTableName;
-const STREAM_NAME = process.env.orderStreamName;
+const TABLE_NAME = process.env.ORDER_TABLE_NAME;
+const STREAM_NAME = process.env.ORDER_STREAM_NAME;
 
 module.exports.createOrder = body => ({
   orderId: uuidv1(),

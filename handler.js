@@ -3,6 +3,7 @@
 const orderManager = require('./orderManager');
 const kinesisHelper = require('./kinesisHelper');
 const cakeProducerManager = require('./cakeProducerManager');
+const orderDeliveryManager = require('./orderDeliveryManager');
 
 const createResponse = (statusCode, message) => ({
   statusCode: statusCode,
@@ -27,16 +28,21 @@ module.exports.orderFulfilled = async event => {
                      .catch(err => createResponse(err.statusCode, err));
 }
 
-module.exports.notifyCakeProducer = async event => {
-  const placedOrders = kinesisHelper.getRecords(event).filter(r => r.eventType === 'order_place');
-
-  if (!placedOrders.length) {
-    return 'No new orders found.';
-  }
-
-  console.log('Found new placed orders:', placedOrders);
+module.exports.notifySuppliers = async event => {
+  // console.log('Got kinesis event:', JSON.stringify(event));
+  const promises = [];
+  const orders = kinesisHelper.getRecords(event);
   
-  cakeProducerManager.handlePlacedOrders(placedOrders).then(() => {
-    return 'Placed orders processed.';
+  orders.forEach(o => {
+    if (o.eventType === 'order_place') {
+      promises.push(cakeProducerManager.handlePlacedOrder(o));
+    }
+    if (o.eventType === 'order_fulfilled') {
+      promises.push(orderDeliveryManager.handleOrderDelivery(o));
+    }
+  });
+
+  Promise.all(promises).then(() => {
+    console.log('All went well!');
   })
 }

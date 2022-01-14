@@ -5,5 +5,7 @@ const parseRecord = record => {
   return JSON.parse(json);
 }
 
-module.exports.getRecords = event =>
-  event.Records.map(parseRecord);
+module.exports = {
+  parseRecord: parseRecord,
+  getRecords: event => event.Records.map(parseRecord)
+}

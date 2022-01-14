@@ -3,30 +3,33 @@ frameworkVersion: '2'
 
 provider:
   name: aws
+  region: eu-central-1
   runtime: nodejs12.x
   lambdaHashingVersion: 20201221
-
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:PutItem
-        - dynamodb:GetItem
-      Resource:
-        arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/ordersTable
-    - Effect: Allow
-      Action:
-        - kinesis:PutRecord
-      Resource:
-        arn:aws:kinesis:${aws:region}:${aws:accountId}:stream/order-events
-    - Effect: Allow
-      Action:
-        - ses:SendEmail
-      Resource:
-        - "*"
-      Condition:
-        StringEquals:
-          ses:FromAddress:
-            - cakeordermail@grr.la
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+          Resource:
+            arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/ordersTable
+        - Effect: Allow
+          Action:
+            - kinesis:PutRecord
+          Resource:
+            arn:aws:kinesis:${aws:region}:${aws:accountId}:stream/order-events
+        - Effect: Allow
+          Action:
+            - ses:SendEmail
+            - ses:SendRawEmail
+          Resource:
+            - '*'
+          Condition:
+            StringEquals:
+              ses:FromAddress:
+                - cakeordermail@grr.la
 
 functions:
   createOrder:
@@ -36,8 +39,8 @@ functions:
           path: /order
           method: post
     environment:
-      orderTableName: ordersTable
-      orderStreamName: order-events
+      ORDER_TABLE_NAME: ordersTable
+      ORDER_STREAM_NAME: order-events
   orderFulfilled:
     handler: handler.orderFulfilled
     events:
@@ -45,17 +48,17 @@ functions:
           path: /order/fulfilled
           method: post
     environment:
-      orderTableName: ordersTable
-      orderStreamName: order-events
-  notifyCakeProducer:
-    handler: handler.notifyCakeProducer
+      ORDER_TABLE_NAME: ordersTable
+      ORDER_STREAM_NAME: order-events
+  notifySuppliers:
+    handler: handler.notifySuppliers
     events:
       - stream:
           arn: arn:aws:kinesis:${aws:region}:${aws:accountId}:stream/order-events
     environment:
-      region: ${aws:region}
-      cakeProducerEmail: cakeproducermail@grr.la
-      cakeOrderEmail: cakeordermail@grr.la
+      REGION: ${aws:region}
+      CAKE_PRODUCER_EMAIL: a.zerkalenkov@smart-image.eu
+      CAKE_ORDER_EMAIL: cakeordermail@grr.la
 
 resources:
   Resources:

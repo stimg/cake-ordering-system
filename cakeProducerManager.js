@@ -1,16 +1,14 @@
 'use strict';
 
 const AWS = require('aws-sdk');
-const { notifyCakeProducer } = require('./handler');
-const ses = new AWS.SES({
-  region: process.env.region
-});
-
-const CAKE_PRODUCER_EMAIL = process.env.cakeProducerEmail;
-const CAKE_ORDER_EMAIL = process.env.cakeOrderEmail;
+const REGION = process.env.REGION;
+const CAKE_PRODUCER_EMAIL = process.env.CAKE_PRODUCER_EMAIL;
+const CAKE_ORDER_EMAIL = process.env.CAKE_ORDER_EMAIL;
+const ses = new AWS.SES({ region: REGION });
 
 const notifyCakeProducerByEmail = order => {
   const params = {
+    Source: CAKE_ORDER_EMAIL,
     Destination: {
       ToAddresses: [CAKE_PRODUCER_EMAIL]
     },
@@ -23,30 +21,15 @@ const notifyCakeProducerByEmail = order => {
           Data: JSON.stringify(order)
         }
       }
-    },
-    Source: CAKE_ORDER_EMAIL
+    }
   }
   
+  console.log('AWS Region:', REGION);
   console.log('Sending email with the following params:', params);
+  console.log('Order Info:', JSON.stringify(order))
   
-  return ses.sendEmail(params)
-     .promise()
-     .then(data => {
-       console.log('Email for order %s is sent', order.orderId)
-       return data;
-     })
-     .catch(err => err)
+  return ses.sendEmail(params).promise();
 }
 
-module.exports.handlePlacedOrders = placedOrders => {
-  const promises = [];
-  
-  placedOrders.forEach(o => {
-    const p = notifyCakeProducerByEmail(o);
-    promises.push(p);
-  });
-  
-  console.log('Promises created:', promises);
-  return Promise.all(promises);
-}
+module.exports.handlePlacedOrder = order => notifyCakeProducerByEmail(order);
 
