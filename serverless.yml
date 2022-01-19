@@ -30,6 +30,11 @@ provider:
             StringEquals:
               ses:FromAddress:
                 - cakeordermail@grr.la
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource:
+            arn:aws:sqs:${aws:region}:${aws:accountId}:deliveryServiceQueue
 
 functions:
   createOrder:
@@ -50,6 +55,16 @@ functions:
     environment:
       ORDER_TABLE_NAME: ordersTable
       ORDER_STREAM_NAME: order-events
+  orderDelivered:
+    handler: handler.orderDelivered
+    events:
+      - http:
+          path: /order/delivered
+          method: post
+    environment:
+      ORDER_TABLE_NAME: ordersTable
+      DELIVERY_COMPANY_QUEUE:
+        Ref: deliveryServiceQueue
   notifySuppliers:
     handler: handler.notifySuppliers
     events:
@@ -59,6 +74,21 @@ functions:
       REGION: ${aws:region}
       CAKE_PRODUCER_EMAIL: a.zerkalenkov@smart-image.eu
       CAKE_ORDER_EMAIL: cakeordermail@grr.la
+      ORDER_TABLE_NAME: ordersTable
+      DELIVERY_COMPANY_QUEUE:
+        Ref: deliveryServiceQueue
+  notifyDeliveryCompany:
+    handler: handler.notifyDeliveryCompany
+    events:
+      - sqs:
+          arn: arn:aws:sqs:${aws:region}:${aws:accountId}:deliveryServiceQueue
+          batchSize: 1
+  notifyCustomerService:
+    handler: handler.notifyCustomerService
+    events:
+      - sqs:
+          arn: !GetAtt deliveryServiceQueue.Arn
+          batchSize: 1
 
 resources:
   Resources:
@@ -67,7 +97,6 @@ resources:
       Properties:
         Name: order-events
         ShardCount: 1
-
     orderTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -79,3 +108,7 @@ resources:
           - AttributeName: orderId
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
+    deliveryServiceQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: deliveryServiceQueue

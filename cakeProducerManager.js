@@ -6,7 +6,7 @@ const CAKE_PRODUCER_EMAIL = process.env.CAKE_PRODUCER_EMAIL;
 const CAKE_ORDER_EMAIL = process.env.CAKE_ORDER_EMAIL;
 const ses = new AWS.SES({ region: REGION });
 
-const notifyCakeProducerByEmail = order => {
+module.exports.handlePlacedOrder = order => {
   const params = {
     Source: CAKE_ORDER_EMAIL,
     Destination: {
@@ -30,6 +30,4 @@ const notifyCakeProducerByEmail = order => {
   
   return ses.sendEmail(params).promise();
 }
-
-module.exports.handlePlacedOrder = order => notifyCakeProducerByEmail(order);
 

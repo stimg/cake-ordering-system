@@ -2,10 +2,9 @@
 
 const { v1: uuidv1 } = require('uuid');
 const AWS = require('aws-sdk');
-const dynamo = new AWS.DynamoDB.DocumentClient();
 const kinesis = new AWS.Kinesis();
+const db = require('./dbHelper');
 
-const TABLE_NAME = process.env.ORDER_TABLE_NAME;
 const STREAM_NAME = process.env.ORDER_STREAM_NAME;
 
 module.exports.createOrder = body => ({
@@ -18,19 +17,6 @@ module.exports.createOrder = body => ({
   eventType: 'order_place'
 });
 
-const getOrder = async orderId =>
-  await dynamo.get({
-    TableName: TABLE_NAME,
-    Key: { orderId: orderId }
-  }).promise().then(result => result.Item);
-
-const saveOrder = order => {
-  return dynamo.put({
-    TableName: TABLE_NAME,
-    Item: order
-  }).promise();
-}
-
 const putOrderIntoStream = order => {
   return kinesis.putRecord({
     Data: JSON.stringify(order),
@@ -39,17 +25,17 @@ const putOrderIntoStream = order => {
   }).promise();
 }
 
-module.exports.placeNewOrder = order => saveOrder(order).then(() => putOrderIntoStream(order));
+module.exports.placeNewOrder = order => db.saveOrder(order).then(() => putOrderIntoStream(order));
 
 module.exports.fulfillOrder = async body => {
-  const order = await getOrder(body.orderId);
-  console.log('Got an order:', order);
+  const order = await db.getOrder(body.orderId);
   
   order.fulfillmentDate = Date.now();
   order.fulfillmentId = body.fulfillmentId;
   order.eventType = 'order_fulfilled';
   
-  return saveOrder(order).then(() => {
+  console.log('Order to save:', order);
+  return db.saveOrder(order).then(() => {
     return putOrderIntoStream(order).then(() => order);
   }).catch(err => console.log('ERROR:', err));
 }

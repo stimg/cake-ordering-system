@@ -28,11 +28,17 @@ module.exports.orderFulfilled = async event => {
                      .catch(err => createResponse(err.statusCode, err));
 }
 
+module.exports.orderDelivered = async event => {
+  const payload = JSON.parse(event.body);
+  return orderDeliveryManager.handleOrderDelivered(payload);
+}
+
 module.exports.notifySuppliers = async event => {
   // console.log('Got kinesis event:', JSON.stringify(event));
   const promises = [];
   const orders = kinesisHelper.getRecords(event);
   
+  console.log('Orders list:', orders);
   orders.forEach(o => {
     if (o.eventType === 'order_place') {
       promises.push(cakeProducerManager.handlePlacedOrder(o));
@@ -42,7 +48,16 @@ module.exports.notifySuppliers = async event => {
     }
   });
 
-  Promise.all(promises).then(() => {
+  console.log('Promises num:', promises.length);
+  return Promise.all(promises).then(() => {
     console.log('All went well!');
-  })
+  }).catch(err => console.log(err));
+}
+
+module.exports.notifyDeliveryCompany = async event => {
+  console.log('Delivery company notified!');
+}
+
+module.exports.notifyCustomerService = async event => {
+  console.log('Customer service notified!');
 }
