@@ -4,6 +4,7 @@ const orderManager = require('./orderManager');
 const kinesisHelper = require('./kinesisHelper');
 const cakeProducerManager = require('./cakeProducerManager');
 const orderDeliveryManager = require('./orderDeliveryManager');
+const customerServiceManager = require('./customerServiceManager');
 
 const createResponse = (statusCode, message) => ({
   statusCode: statusCode,
@@ -30,7 +31,9 @@ module.exports.orderFulfilled = async event => {
 
 module.exports.orderDelivered = async event => {
   const payload = JSON.parse(event.body);
-  return orderDeliveryManager.handleOrderDelivered(payload);
+  return customerServiceManager.handleOrderDelivered(payload)
+                             .then(order => createResponse(200, `Order ${payload.orderId} successfully delivered by ${payload.deliveryCompanyId}` ))
+                             .catch(err => createResponse(err.statusCode, err));
 }
 
 module.exports.notifySuppliers = async event => {

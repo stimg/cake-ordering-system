@@ -34,7 +34,8 @@ provider:
           Action:
             - sqs:SendMessage
           Resource:
-            arn:aws:sqs:${aws:region}:${aws:accountId}:deliveryServiceQueue
+            - arn:aws:sqs:${aws:region}:${aws:accountId}:deliveryServiceQueue
+            - arn:aws:sqs:${aws:region}:${aws:accountId}:customerServiceQueue
 
 functions:
   createOrder:
@@ -62,9 +63,10 @@ functions:
           path: /order/delivered
           method: post
     environment:
+      REGION: ${aws:region}
       ORDER_TABLE_NAME: ordersTable
-      DELIVERY_COMPANY_QUEUE:
-        Ref: deliveryServiceQueue
+      CUSTOMER_SERVICE_QUEUE:
+        Ref: customerServiceQueue
   notifySuppliers:
     handler: handler.notifySuppliers
     events:
@@ -87,7 +89,7 @@ functions:
     handler: handler.notifyCustomerService
     events:
       - sqs:
-          arn: !GetAtt deliveryServiceQueue.Arn
+          arn: arn:aws:sqs:${aws:region}:${aws:accountId}:customerServiceQueue
           batchSize: 1
 
 resources:
@@ -112,3 +114,7 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: deliveryServiceQueue
+    customerServiceQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: customerServiceQueue
