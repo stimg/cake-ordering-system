@@ -74,7 +74,7 @@ functions:
           arn: arn:aws:kinesis:${aws:region}:${aws:accountId}:stream/order-events
     environment:
       REGION: ${aws:region}
-      CAKE_PRODUCER_EMAIL: a.zerkalenkov@smart-image.eu
+      CAKE_PRODUCER_EMAIL: orderservicemail@grr.la
       CAKE_ORDER_EMAIL: cakeordermail@grr.la
       ORDER_TABLE_NAME: ordersTable
       DELIVERY_COMPANY_QUEUE:
